@@ -1,0 +1,89 @@
+<?php
+include ("db_set.php");
+
+class users
+{
+    private $connection;
+    private $uname, $passwd, $email, $role;
+
+    public function load_usr($uname){
+        try{
+            $this->connect();
+            $sql = "SELECT login, password, email, role FROM uzivatel WHERE login = \"$uname\"";
+            $stmt = $this->connection->prepare($sql);
+            $stmt->execute();
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $this->disconnect();
+            if(count($result) < 1)
+                return false;
+            else if(count($result) > 1)
+                return false;
+            else {
+                /*
+                echo "<hr><pre>";
+                print_r($result);
+                echo "</pre><hr>";
+                */
+                $this->uname = $result[0]["login"];
+                $this->passwd = $result[0]["password"];
+                $this->email = $result[0]["email"];
+                $this->role = $result[0]["role"];
+                return true;
+            }
+
+        } catch(PDOException $e){
+            echo "Erorr: " . $e->getMessage();
+        }
+    }
+
+    // ODSTRANIT!!!!
+    public function get_usr(){
+        echo "$this->uname \n $this->passwd \n $this->email \n $this->role";
+    }
+
+    public function is_user($uname){
+        if($this->uname == $uname)
+            return true;
+        else
+            return false;
+    }
+
+    public function login($uname,$passwd){
+        if($this->is_user($uname)){
+            $temp_passwd = hash("sha256", $passwd, true);
+            if($this->passwd == $temp_passwd){
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public function add_user($uname, $passwd, $email, $role){
+        try{
+            $temp_passwd = hash("sha256", $passwd, true);
+            $sql = "INSERT INTO uzivatel (login, password, email, role) VALUES (\"$uname\", \"$temp_passwd\", \"$email\", \"$role\")";
+            $this->connect();
+            $this->connection->exec($sql);
+
+            $this->disconnect();
+            echo "Added successfuly";
+        } catch(PDOException $e){
+            echo "Insert error: " . $e->getMessage();
+        }
+    }
+
+    function connect(){
+        try{
+            $this->connection = new PDO("mysql:host=".DB_SERVER.";dbname=".DB_DATABASE_NAME."", DB_USER_LOGIN, DB_USER_PASSWORD);
+            $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch(PDOException $e){
+            echo "Connection failed: " . $e->getMessage();
+            die();
+        }
+    }
+    function disconnect(){
+        $this->connection = null;
+    }
+}
